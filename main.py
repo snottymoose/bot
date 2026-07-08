@@ -100,7 +100,7 @@ menu = InlineKeyboardMarkup(
                 text="Вступление",
                 icon_custom_emoji_id="6033108709213736873",
                 callback_data="join",
-                style=ButtonStyle.PRIMARY
+                style="primary"
             )
         ],
         [
