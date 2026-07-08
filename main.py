@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 import asyncio
 import time
 
-from aiogram import Bot, Dispatcher, Router
+from aiogram import Bot, Dispatcher, Router, F
 from aiogram.types import (
     Message,
     InlineKeyboardMarkup,
@@ -26,6 +26,9 @@ load_dotenv()
 
 TOKEN = getenv("BOT_TOKEN")
 
+if not TOKEN:
+    raise RuntimeError("BOT_TOKEN не найден в .env")
+
 REQUESTS_CHAT_ID = -5315904328
 LOG_CHAT_ID = -5302445006
 
@@ -39,35 +42,22 @@ dp.include_router(router)
 # АНТИСПАМ
 # =========================
 
-button_cooldowns = {}
-message_cooldowns = {}
+cooldowns = {}
 
 BUTTON_DELAY = 10
 MESSAGE_DELAY = 5
 
 
-def check_button_spam(user_id: int):
+def check_spam(user_id: int, delay: int):
 
     now = time.time()
 
-    if user_id in button_cooldowns:
-        if now - button_cooldowns[user_id] < BUTTON_DELAY:
-            return False
+    last = cooldowns.get(user_id, 0)
 
-    button_cooldowns[user_id] = now
-    return True
+    if now - last < delay:
+        return False
 
-
-
-def check_message_spam(user_id: int):
-
-    now = time.time()
-
-    if user_id in message_cooldowns:
-        if now - message_cooldowns[user_id] < MESSAGE_DELAY:
-            return False
-
-    message_cooldowns[user_id] = now
+    cooldowns[user_id] = now
     return True
 
 
@@ -142,13 +132,39 @@ def reply_keyboard(user_id: int):
 
 
 
+FORM_CONFIG = {
+
+    "join": {
+        "state": Form.waiting_nick,
+        "message": "Пожалуйста, укажите свой ник в игре.",
+        "log": "📝 Начата заявка на вступление"
+    },
+
+    "mods": {
+        "state": Form.waiting_mods,
+        "message": "Пожалуйста, укажите полные названия модов.",
+        "log": "🧩 Открыто предложение модов"
+    },
+
+    "questionnaire": {
+        "state": Form.waiting_questionnaire,
+        "message": "Пожалуйста, заполните анкету.",
+        "log": "📋 Открыта анкета"
+    }
+}
+
+
+
 # =========================
 # START
 # =========================
 
 @router.message(Command("start"))
-async def start(message: Message):
-
+async def start(
+    message: Message,
+    state: FSMContext
+):
+    await state.clear()
     await message.answer(
         'Вас приветствует многофункциональный бот сервера '
         '<a href="https://t.me/MLADAB0SNA">Mlada Bosna</a>!\n\n'
@@ -160,12 +176,8 @@ async def start(message: Message):
 
 
 
-# =========================
-# ВСТУПЛЕНИЕ
-# =========================
-
-@router.callback_query(lambda call: call.data == "join")
-async def joining(
+@router.callback_query(F.data.in_(FORM_CONFIG.keys()))
+async def open_form(
     call: CallbackQuery,
     state: FSMContext,
     bot: Bot
@@ -174,145 +186,76 @@ async def joining(
     user_id = call.from_user.id
 
 
-    if not check_button_spam(user_id):
+    if not check_spam(user_id, BUTTON_DELAY):
 
         await call.answer(
-            "нет",
+            "Подождите немного.",
             show_alert=True
         )
 
         return
 
 
-    current_state = await state.get_state()
-
-    if current_state:
+    if await state.get_state():
 
         await call.answer(
-            "Вы уже заполняете заявку.",
+            "У вас уже есть активная заявка.",
             show_alert=True
         )
 
         return
 
 
-    await state.set_state(Form.waiting_nick)
+    data = FORM_CONFIG[call.data]
+
+
+    await state.set_state(
+        data["state"]
+    )
 
 
     await call.message.answer(
-        "Пожалуйста, укажите свой ник в игре."
+        data["message"]
     )
 
 
     await bot.send_message(
         LOG_CHAT_ID,
-        f"📝 Начата заявка на вступление\n\n"
+        f"{data['log']}\n\n"
         f"{get_user_info(call.from_user)}"
     )
 
 
     await call.answer()
 
-
-
-# =========================
-# МОДЫ
-# =========================
-
-@router.callback_query(lambda call: call.data == "mods")
-async def mods(
-    call: CallbackQuery,
-    state: FSMContext,
-    bot: Bot
+async def send_application(
+    bot: Bot,
+    message: Message,
+    title: str
 ):
 
-    user_id = call.from_user.id
+    await bot.send_message(
+        REQUESTS_CHAT_ID,
+        f"{title}\n\n"
+        f"{get_user_info(message.from_user)}"
+    )
 
 
-    if not check_button_spam(user_id):
-
-        await call.answer(
-            "нет",
-            show_alert=True
+    await bot.copy_message(
+        chat_id=REQUESTS_CHAT_ID,
+        from_chat_id=message.chat.id,
+        message_id=message.message_id,
+        reply_markup=reply_keyboard(
+            message.from_user.id
         )
-
-        return
-
-
-    current_state = await state.get_state()
-
-    if current_state:
-
-        await call.answer(
-            "Вы уже заполняете заявку.",
-            show_alert=True
-        )
-
-        return
-
-
-    await state.set_state(Form.waiting_mods)
-
-
-    await call.message.answer(
-        "Пожалуйста, укажите полные названия модов. Не забывайте, что на сервер планируется добавить минимальное их количество."
     )
 
 
     await bot.send_message(
         LOG_CHAT_ID,
-        f"🧩 Открыто предложение модов\n\n"
-        f"{get_user_info(call.from_user)}"
+        f"✅ {title}\n"
+        f"{get_user_info(message.from_user)}"
     )
-
-
-    await call.answer()
-
-# =========================
-# АНКЕТНИК
-# =========================
-
-@router.callback_query(lambda call: call.data == "questionnaire")
-async def questionnaire(
-    call: CallbackQuery,
-    state: FSMContext
-):
-
-    user_id = call.from_user.id
-
-
-    if not check_button_spam(user_id):
-
-        await call.answer(
-            "нет",
-            show_alert=True
-        )
-
-        return
-
-
-    current_state = await state.get_state()
-
-    if current_state:
-
-        await call.answer(
-            "Вы уже заполняете анкету.",
-            show_alert=True
-        )
-
-        return
-
-
-    await state.set_state(Form.waiting_questionnaire)
-
-
-    await call.message.answer(
-        "Пожалуйста, заполните анкету по шаблону:"
-    )
-
-
-    await call.answer()
-
 # =========================
 # ПОЛУЧЕНИЕ НИКА
 # =========================
@@ -324,7 +267,10 @@ async def get_nick(
     bot: Bot
 ):
 
-    if not check_message_spam(message.from_user.id):
+    if not check_spam(
+        message.from_user.id,
+        MESSAGE_DELAY
+    ):
 
         await message.answer(
             "Слишком много сообщений. Подождите."
@@ -351,26 +297,10 @@ async def get_nick(
         return
 
 
-    await bot.send_message(
-        REQUESTS_CHAT_ID,
-        "🟢 Новая заявка\n\n"
-        f"Ник пользователя:\n"
-        f"{get_user_info(message.from_user)}",
-        reply_markup=reply_keyboard(message.from_user.id)
-    )
-
-
-    await bot.copy_message(
-        chat_id=REQUESTS_CHAT_ID,
-        from_chat_id=message.chat.id,
-        message_id=message.message_id
-    )
-
-
-    await bot.send_message(
-        LOG_CHAT_ID,
-        f"✅ Заявка отправлена\n"
-        f"{get_user_info(message.from_user)}"
+    await send_application(
+        bot,
+        message,
+        "🟢 Новая заявка"
     )
 
 
@@ -394,7 +324,10 @@ async def get_mods(
     bot: Bot
 ):
 
-    if not check_message_spam(message.from_user.id):
+    if not check_spam(
+        message.from_user.id,
+        MESSAGE_DELAY
+    ):
 
         await message.answer(
             "Слишком много сообщений. Подождите."
@@ -421,25 +354,10 @@ async def get_mods(
         return
 
 
-    await bot.send_message(
-        REQUESTS_CHAT_ID,
-        "🧩 Новое предложение модов\n\n"
-        f"{get_user_info(message.from_user)}",
-    )
-
-
-    await bot.copy_message(
-        chat_id=REQUESTS_CHAT_ID,
-        from_chat_id=message.chat.id,
-        message_id=message.message_id,
-        reply_markup=reply_keyboard(message.from_user.id)
-    )
-
-
-    await bot.send_message(
-        LOG_CHAT_ID,
-        f"✅ Предложение модов отправлено\n"
-        f"{get_user_info(message.from_user)}"
+    await send_application(
+        bot,
+        message,
+        "🧩 Новое предложение модов"
     )
 
 
@@ -462,7 +380,10 @@ async def get_questionnaire(
 ):
 
 
-    if not check_message_spam(message.from_user.id):
+    if not check_spam(
+        message.from_user.id,
+        MESSAGE_DELAY
+    ):
 
         await message.answer(
             "Слишком много сообщений. Подождите."
@@ -490,43 +411,17 @@ async def get_questionnaire(
 
 
 
-    # =========================
-    # ЕСЛИ АНКЕТА ТЕКСТОМ
-    # =========================
+    await bot.send_message(
+        REQUESTS_CHAT_ID,
+        prefix
+    )
 
-    if message.text:
-
-        await bot.send_message(
-            REQUESTS_CHAT_ID,
-            prefix
-        )
-
-        await bot.copy_message(
-            chat_id=REQUESTS_CHAT_ID,
-            from_chat_id=message.chat.id,
-            message_id=message.message_id,
-            reply_markup=reply_keyboard(message.from_user.id)
-        )
-
-
-
-    # =========================
-    # ЕСЛИ АНКЕТА С КАРТИНКОЙ
-    # =========================
-
-    elif message.photo:
-
-        await bot.send_message(
-            REQUESTS_CHAT_ID,
-            prefix
-        )
-
-        await bot.copy_message(
-            chat_id=REQUESTS_CHAT_ID,
-            from_chat_id=message.chat.id,
-            message_id=message.message_id,
-            reply_markup=reply_keyboard(message.from_user.id)
-        )
+    await bot.copy_message(
+        chat_id=REQUESTS_CHAT_ID,
+        from_chat_id=message.chat.id,
+        message_id=message.message_id,
+        reply_markup=reply_keyboard(message.from_user.id)
+    )
 
 
 
@@ -548,13 +443,21 @@ async def get_questionnaire(
 # ОТВЕТ АДМИНИСТРАТОРА
 # =========================
 
-@router.callback_query(lambda call: call.data.startswith("reply_"))
+@router.callback_query(F.data.startswith("reply_"))
 async def reply_user(
     call: CallbackQuery,
     state: FSMContext
 ):
 
-    user_id = int(call.data.split("_")[1])
+    try:
+        user_id = int(call.data.split("_")[1])
+
+    except:
+        await call.answer(
+            "Ошибка пользователя",
+            show_alert=True
+        )
+        return
 
 
     await state.update_data(
@@ -585,7 +488,14 @@ async def send_admin_reply(
 
     data = await state.get_data()
 
-    user_id = data["reply_user_id"]
+    user_id = data.get("reply_user_id")
+
+    if not user_id:
+        await message.answer(
+            "Ошибка: игрок не найден."
+        )
+        await state.clear()
+        return
 
 
     await bot.copy_message(
@@ -615,6 +525,13 @@ async def send_admin_reply(
 # =========================
 # ЗАПУСК
 # =========================
+
+@dp.error()
+async def error_handler(event):
+    print(
+        "Ошибка:",
+        event.exception
+    )
 
 async def main():
 
