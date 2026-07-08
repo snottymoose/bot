@@ -97,19 +97,22 @@ menu = InlineKeyboardMarkup(
     inline_keyboard=[
         [
             InlineKeyboardButton(
-                text='<tg-emoji emoji-id="6033108709213736873">⭐</tg-emoji> Вступление',
+                text="Вступление",
+                icon_custom_emoji_id="6033108709213736873",
                 callback_data="join"
             )
         ],
         [
             InlineKeyboardButton(
-                text='<tg-emoji emoji-id="6034923938486684992">⭐</tg-emoji> Моды',
+                text="Моды",
+                icon_custom_emoji_id="6034923938486684992",
                 callback_data="mods"
             )
         ],
         [
             InlineKeyboardButton(
-                text='<tg-emoji emoji-id="6039779802741739617">⭐</tg-emoji> Анкетник',
+                text="Анкетник",
+                icon_custom_emoji_id="6039779802741739617",
                 callback_data="questionnaire"
             )
         ]
