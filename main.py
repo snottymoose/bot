@@ -95,7 +95,7 @@ class Form(StatesGroup):
     waiting_nick = State()
     waiting_mods = State()
     waiting_admin_reply = State()
-
+    waiting_questionnaire = State()
 
 
 # =========================
@@ -114,6 +114,12 @@ menu = InlineKeyboardMarkup(
             InlineKeyboardButton(
                 text="Моды",
                 callback_data="mods"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text="Анкетник",
+                callback_data="questionnaire"
             )
         ]
     ]
@@ -262,7 +268,50 @@ async def mods(
 
     await call.answer()
 
+# =========================
+# АНКЕТНИК
+# =========================
 
+@router.callback_query(lambda call: call.data == "questionnaire")
+async def questionnaire(
+    call: CallbackQuery,
+    state: FSMContext
+):
+
+    user_id = call.from_user.id
+
+
+    if not check_button_spam(user_id):
+
+        await call.answer(
+            "нет",
+            show_alert=True
+        )
+
+        return
+
+
+    current_state = await state.get_state()
+
+    if current_state:
+
+        await call.answer(
+            "Вы уже заполняете анкету.",
+            show_alert=True
+        )
+
+        return
+
+
+    await state.set_state(Form.waiting_questionnaire)
+
+
+    await call.message.answer(
+        "Пожалуйста, заполните анкету по шаблону:"
+    )
+
+
+    await call.answer()
 
 # =========================
 # ПОЛУЧЕНИЕ НИКА
@@ -407,7 +456,83 @@ async def get_mods(
 
     await state.clear()
 
+# =========================
+# ПОЛУЧЕНИЕ АНКЕТЫ
+# =========================
 
+@router.message(Form.waiting_questionnaire)
+async def get_questionnaire(
+    message: Message,
+    state: FSMContext,
+    bot: Bot
+):
+
+
+    if not check_message_spam(message.from_user.id):
+
+        await message.answer(
+            "Слишком много сообщений. Подождите."
+        )
+
+        return
+
+
+
+    if not message.text and not message.photo:
+
+        await message.answer(
+            "Отправьте анкету."
+        )
+
+        return
+
+
+
+    caption = (
+        "📋 Новая анкета\n\n"
+        f"{get_user_info(message.from_user)}"
+    )
+
+
+    # Если отправили фото
+    if message.photo:
+
+        await bot.send_photo(
+            REQUESTS_CHAT_ID,
+            photo=message.photo[-1].file_id,
+            caption=caption + (
+                f"\n\n{message.caption}"
+                if message.caption
+                else ""
+            ),
+            reply_markup=reply_keyboard(message.from_user.id)
+        )
+
+
+    # Если только текст
+    else:
+
+        await bot.send_message(
+            REQUESTS_CHAT_ID,
+            caption + "\n\n" + message.text,
+            reply_markup=reply_keyboard(message.from_user.id)
+        )
+
+
+
+    await bot.send_message(
+        LOG_CHAT_ID,
+        f"📋 Анкета отправлена\n"
+        f"{get_user_info(message.from_user)}"
+    )
+
+
+    await message.answer(
+        "Анкета отправлена."
+    )
+
+
+    await state.clear()
 
 # =========================
 # ОТВЕТ АДМИНИСТРАТОРА
