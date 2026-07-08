@@ -9,7 +9,8 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     InlineKeyboardButton,
     BotCommand,
-    CallbackQuery
+    CallbackQuery,
+    LinkPreviewOptions
 )
 from aiogram.filters import Command
 from aiogram.enums import ParseMode
@@ -318,7 +319,10 @@ async def get_nick(
         "Заявка отправлена! Вы можете обратиться лично к "
         "<a href='https://t.me/MLADAB0SNA/6'>администратору</a>, "
         "если ответ не поступил в течение 6-ти часов.",
-        parse_mode=ParseMode.HTML
+        parse_mode=ParseMode.HTML,
+        link_preview_options=LinkPreviewOptions(
+            is_disabled=True
+        )
     )
 
 
