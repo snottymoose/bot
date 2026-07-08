@@ -403,10 +403,10 @@ async def get_questionnaire(
 
 
 
-    if not message.text:
+    if not message.text and not message.photo and not message.document:
 
         await message.answer(
-            "Отправьте анкету."
+            "Отправьте анкету текстом, изображением или файлом."
         )
 
         return
