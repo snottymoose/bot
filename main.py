@@ -424,10 +424,10 @@ async def get_questionnaire(
 
     # Если это альбом с картинками
 # Если это альбом с картинками
+# Если это альбом с картинками
     if message.media_group_id:
 
         media_id = message.media_group_id
-
 
         if media_id not in albums:
             albums[media_id] = {
@@ -436,22 +436,20 @@ async def get_questionnaire(
                 "chat_id": message.chat.id
             }
 
+        albums[media_id]["messages"].append(message.message_id)
 
-        albums[media_id]["messages"].append(
-            message.message_id
-        )
-
-
-        # если таймер уже есть — отменяем
         if media_id in album_timers:
             album_timers[media_id].cancel()
 
 
         async def process_album():
 
-            await sleep(3)
+            await sleep(1)
 
-            album = albums.pop(media_id)
+            album = albums.pop(media_id, None)
+
+            if not album:
+                return
 
 
             await bot.send_message(
@@ -480,7 +478,8 @@ async def get_questionnaire(
             )
 
 
-            await message.answer(
+            await bot.send_message(
+                album["user"].id,
                 "Спасибо! Теперь, пожалуйста, отправьте файл вашего скина."
             )
 
