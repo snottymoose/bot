@@ -290,10 +290,10 @@ async def get_nick(
         return
 
 
-    if not message.text and not message.photo and not message.document:
+    if not message.text:
 
         await message.answer(
-            "К анкете разрешается прикреплять только изображения и файлы."
+            "Отправьте текстовый ник."
         )
 
         return
@@ -316,7 +316,7 @@ async def get_nick(
 
 
     await message.answer(
-        "Заявка отправлена."
+        "Заявка отправлена! Вы можете обратиться лично к <a href='https://t.me/MLADAB0SNA/6'>администратору</a>, если ответ не поступил в течение 6-ти часов."
     )
 
 
@@ -503,7 +503,7 @@ async def get_skin(
 
     await bot.send_message(
         LOG_CHAT_ID,
-        f"🎨 #Скин отправлен\n"
+        f"✅ 🎨 #Скин\n"
         f"{get_user_info(message.from_user)}"
     )
 
@@ -596,7 +596,28 @@ async def send_admin_reply(
 
     await state.clear()
 
+# =========================
+# ОБРАБОТКА СООБЩЕНИЙ БЕЗ ОПЦИИ
+# =========================
 
+@router.message()
+async def no_option_selected(
+    message: Message,
+    state: FSMContext
+):
+
+    if message.text and message.text.startswith("/"):
+        return
+
+    current_state = await state.get_state()
+
+    if current_state:
+        return
+
+    await message.answer(
+        "Для начала необходимо выбрать опцию из списка.",
+        reply_markup=menu
+    )
 
 # =========================
 # ЗАПУСК
