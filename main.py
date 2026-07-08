@@ -86,6 +86,7 @@ class Form(StatesGroup):
     waiting_mods = State()
     waiting_admin_reply = State()
     waiting_questionnaire = State()
+    waiting_skin = State()
 
 
 # =========================
@@ -149,13 +150,14 @@ FORM_CONFIG = {
     "questionnaire": {
         "state": Form.waiting_questionnaire,
         "message": 'Пожалуйста, заполните анкету по шаблону:\n\n'
-        '1) Ваш ник в игре и юзернейм в телеграме.\n'
+        '1) Ник в игре, юзернейм в телеграме.\n'
         '2) Имя/Прозвище/Кличка.\n'
         '3) Возраст.\n'
         '4) Внешность. Текстовое описание необязательно, если прикреплены изображения.\n'
         '5) Характер, черты личности.\n'
         '6) Биография.\n'
-        '7) Дополнительная информация, факты.\n',
+        '7) Дополнительная информация, факты.\n\n'
+        'Текст разрешается оформлять по-своему, однако все пункты должны быть заполнены.. Проследите за тем, чтобы ваша анкета умещалась в одно сообщение телеграма. В противном случае можно вставить ссылки на сторонние хранители информации.',
         "log": "📋 Открыта опция «Анкетник»"
     }
 }
@@ -401,7 +403,7 @@ async def get_questionnaire(
 
 
 
-    if not message.text and not message.photo:
+    if not message.text:
 
         await message.answer(
             "Отправьте анкету."
@@ -436,6 +438,71 @@ async def get_questionnaire(
     await bot.send_message(
         LOG_CHAT_ID,
         f"📋 #Анкета\n"
+        f"{get_user_info(message.from_user)}"
+    )
+
+
+    await message.answer(
+        "Спасибо! Теперь, пожалуйста, отправьте файл вашего скина."
+    )
+
+
+    await state.set_state(
+        Form.waiting_skin
+    )
+
+# =========================
+# ПОЛУЧЕНИЕ СКИНА
+# =========================
+
+@router.message(Form.waiting_skin)
+async def get_skin(
+    message: Message,
+    state: FSMContext,
+    bot: Bot
+):
+
+    if not check_spam(
+        message.from_user.id,
+        MESSAGE_DELAY
+    ):
+
+        await message.answer(
+            "Слишком много сообщений. Подождите."
+        )
+
+        return
+
+
+    if not message.document:
+
+        await message.answer(
+            "Пожалуйста, отправьте скин именно файлом (без сжатия изображения)."
+        )
+
+        return
+
+
+    await bot.send_message(
+        REQUESTS_CHAT_ID,
+        "🎨 #Скин\n\n"
+        f"{get_user_info(message.from_user)}",
+        reply_markup=reply_keyboard(
+            message.from_user.id
+        )
+    )
+
+
+    await bot.copy_message(
+        chat_id=REQUESTS_CHAT_ID,
+        from_chat_id=message.chat.id,
+        message_id=message.message_id
+    )
+
+
+    await bot.send_message(
+        LOG_CHAT_ID,
+        f"🎨 #Скин отправлен\n"
         f"{get_user_info(message.from_user)}"
     )
 
