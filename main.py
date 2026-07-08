@@ -488,33 +488,49 @@ async def get_questionnaire(
 
 
 
-    caption = (
+    # Текст перед анкетой
+    prefix = (
         "📋 Новая анкета\n\n"
-        f"{get_user_info(message.from_user)}"
+        f"{get_user_info(message.from_user)}\n\n"
     )
 
 
-    # Если отправили фото
-    if message.photo:
 
-        await bot.send_photo(
+    # =========================
+    # ЕСЛИ АНКЕТА ТЕКСТОМ
+    # =========================
+
+    if message.text:
+
+        await bot.send_message(
             REQUESTS_CHAT_ID,
-            photo=message.photo[-1].file_id,
-            caption=caption + (
-                f"\n\n{message.caption}"
-                if message.caption
-                else ""
-            ),
+            prefix
+        )
+
+        await bot.copy_message(
+            chat_id=REQUESTS_CHAT_ID,
+            from_chat_id=message.chat.id,
+            message_id=message.message_id,
             reply_markup=reply_keyboard(message.from_user.id)
         )
 
 
-    # Если только текст
-    else:
+
+    # =========================
+    # ЕСЛИ АНКЕТА С КАРТИНКОЙ
+    # =========================
+
+    elif message.photo:
 
         await bot.send_message(
             REQUESTS_CHAT_ID,
-            caption + "\n\n" + message.text,
+            prefix
+        )
+
+        await bot.copy_message(
+            chat_id=REQUESTS_CHAT_ID,
+            from_chat_id=message.chat.id,
+            message_id=message.message_id,
             reply_markup=reply_keyboard(message.from_user.id)
         )
 
