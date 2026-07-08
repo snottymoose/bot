@@ -226,9 +226,9 @@ async def open_form(
 
 
     await call.message.answer(
-        data["message"]
+        data["message"],
+        parse_mode=ParseMode.HTML
     )
-
 
     await bot.send_message(
         LOG_CHAT_ID,
