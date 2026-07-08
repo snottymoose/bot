@@ -19,6 +19,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
 from asyncio import sleep
+from asyncio import create_task
 
 # =========================
 # НАСТРОЙКИ БОТА
@@ -47,6 +48,7 @@ dp.include_router(router)
 cooldowns = {}
 
 albums = {}
+album_timers = {}
 
 BUTTON_DELAY = 10
 MESSAGE_DELAY = 5
@@ -424,55 +426,74 @@ async def get_questionnaire(
 # Если это альбом с картинками
     if message.media_group_id:
 
-        if message.media_group_id not in albums:
-            albums[message.media_group_id] = []
+        media_id = message.media_group_id
 
-        albums[message.media_group_id].append(
+
+        if media_id not in albums:
+            albums[media_id] = {
+                "messages": [],
+                "user": message.from_user,
+                "chat_id": message.chat.id
+            }
+
+
+        albums[media_id]["messages"].append(
             message.message_id
         )
 
 
-        await sleep(1)
+        # если таймер уже есть — отменяем
+        if media_id in album_timers:
+            album_timers[media_id].cancel()
 
 
-        album = albums.pop(
-            message.media_group_id,
-            []
-        )
+        async def process_album():
+
+            await sleep(3)
+
+            album = albums.pop(media_id)
 
 
-        await bot.send_message(
-            REQUESTS_CHAT_ID,
-            "📋 #Анкета\n\n"
-            f"{get_user_info(message.from_user)}",
-            reply_markup=reply_keyboard(message.from_user.id)
-        )
-
-
-        for msg_id in album:
-
-            await bot.copy_message(
-                chat_id=REQUESTS_CHAT_ID,
-                from_chat_id=message.chat.id,
-                message_id=msg_id
+            await bot.send_message(
+                REQUESTS_CHAT_ID,
+                "📋 #Анкета\n\n"
+                f"{get_user_info(album['user'])}",
+                reply_markup=reply_keyboard(
+                    album["user"].id
+                )
             )
 
 
-        await bot.send_message(
-            LOG_CHAT_ID,
-            f"✅ 📋 #Анкета\n"
-            f"{get_user_info(message.from_user)}"
+            for msg_id in album["messages"]:
+
+                await bot.copy_message(
+                    chat_id=REQUESTS_CHAT_ID,
+                    from_chat_id=album["chat_id"],
+                    message_id=msg_id
+                )
+
+
+            await bot.send_message(
+                LOG_CHAT_ID,
+                f"✅ 📋 #Анкета\n"
+                f"{get_user_info(album['user'])}"
+            )
+
+
+            await message.answer(
+                "Спасибо! Теперь, пожалуйста, отправьте файл вашего скина."
+            )
+
+
+            await state.set_state(
+                Form.waiting_skin
+            )
+
+
+        album_timers[media_id] = create_task(
+            process_album()
         )
 
-
-        await message.answer(
-            "Спасибо! Теперь, пожалуйста, отправьте файл вашего скина."
-        )
-
-
-        await state.set_state(
-            Form.waiting_skin
-        )
 
         return
 
