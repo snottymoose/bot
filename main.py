@@ -100,6 +100,7 @@ menu = InlineKeyboardMarkup(
                 text="Вступление",
                 icon_custom_emoji_id="6033108709213736873",
                 callback_data="join"
+                style=ButtonStyle.PRIMARY
             )
         ],
         [
@@ -179,11 +180,11 @@ async def start(
 ):
     await state.clear()
     await message.answer(
-        'Вас приветствует многофункциональный бот сервера '
+        'Вас приветствует бот сервера '
         '<a href="https://t.me/MLADAB0SNA">Mlada Bosna</a>!\n\n'
         '1) <b>Вступление:</b> регистрация новых игроков.\n'
-        '2) <b>Моды:</b> [<i>Временно</i>] здесь можно предложить желаемые моды для добавления на сервер. Полный список предложений без указания отправителей будет отправлен в чат сервера для обсуждения. После этого пройдет голосование.\n'
-        '3) <b>Анкетник:</b> регистрация лорного персонажа. Для заполнения анкеты необходимо уже являться участником сервера. Подробнее о ролевом аспекте можно узнать на соответственном <a href="https://t.me/MLADAB0SNA_chars">канале</a>.',
+        '2) <b>Моды:</b> [<i>Временно</i>] здесь можно предложить желаемые Вами моды для добавления на сервер.\n'
+        '3) <b>Анкетник:</b> регистрация лорного персонажа. Подробнее можно узнать на соответственном <a href="https://t.me/MLADAB0SNA_chars">канале</a>.',
         reply_markup=menu,
         parse_mode=ParseMode.HTML
     )
@@ -212,12 +213,7 @@ async def open_form(
 
     if await state.get_state():
 
-        await call.answer(
-            "У вас уже есть активная заявка.",
-            show_alert=True
-        )
-
-        return
+        await state.clear()
 
 
     data = FORM_CONFIG[call.data]
