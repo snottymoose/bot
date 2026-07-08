@@ -324,7 +324,6 @@ async def get_nick(
     bot: Bot
 ):
 
-
     if not check_message_spam(message.from_user.id):
 
         await message.answer(
@@ -332,7 +331,6 @@ async def get_nick(
         )
 
         return
-
 
 
     if not message.text:
@@ -344,7 +342,6 @@ async def get_nick(
         return
 
 
-
     if len(message.text) > 50:
 
         await message.answer(
@@ -354,26 +351,26 @@ async def get_nick(
         return
 
 
-
-    text = (
+    await bot.send_message(
+        REQUESTS_CHAT_ID,
         "🟢 Новая заявка\n\n"
-        f"Ник: {message.text}\n"
-        f"{get_user_info(message.from_user)}"
+        f"Ник пользователя:\n"
+        f"{get_user_info(message.from_user)}",
+        reply_markup=reply_keyboard(message.from_user.id)
     )
 
 
-    await bot.send_message(
-        REQUESTS_CHAT_ID,
-        text,
-        reply_markup=reply_keyboard(message.from_user.id)
+    await bot.copy_message(
+        chat_id=REQUESTS_CHAT_ID,
+        from_chat_id=message.chat.id,
+        message_id=message.message_id
     )
 
 
     await bot.send_message(
         LOG_CHAT_ID,
         f"✅ Заявка отправлена\n"
-        f"{get_user_info(message.from_user)}\n"
-        f"Ник: {message.text}"
+        f"{get_user_info(message.from_user)}"
     )
 
 
@@ -397,7 +394,6 @@ async def get_mods(
     bot: Bot
 ):
 
-
     if not check_message_spam(message.from_user.id):
 
         await message.answer(
@@ -405,7 +401,6 @@ async def get_mods(
         )
 
         return
-
 
 
     if not message.text:
@@ -417,7 +412,6 @@ async def get_mods(
         return
 
 
-
     if len(message.text) > 1000:
 
         await message.answer(
@@ -427,17 +421,17 @@ async def get_mods(
         return
 
 
-
-    text = (
+    await bot.send_message(
+        REQUESTS_CHAT_ID,
         "🧩 Новое предложение модов\n\n"
-        f"{get_user_info(message.from_user)}\n\n"
-        f"{message.text}"
+        f"{get_user_info(message.from_user)}",
     )
 
 
-    await bot.send_message(
-        REQUESTS_CHAT_ID,
-        text,
+    await bot.copy_message(
+        chat_id=REQUESTS_CHAT_ID,
+        from_chat_id=message.chat.id,
+        message_id=message.message_id,
         reply_markup=reply_keyboard(message.from_user.id)
     )
 
@@ -594,9 +588,10 @@ async def send_admin_reply(
     user_id = data["reply_user_id"]
 
 
-    await bot.send_message(
-        user_id,
-        f"{message.text}"
+    await bot.copy_message(
+        chat_id=user_id,
+        from_chat_id=message.chat.id,
+        message_id=message.message_id
     )
 
 
