@@ -401,16 +401,17 @@ async def get_questionnaire(
     bot: Bot
 ):
 
-    if not check_spam(
-        message.from_user.id,
-        MESSAGE_DELAY
-    ):
+    # Для альбома не проверяем каждую картинку
+    if not message.media_group_id:
 
-        await message.answer(
-            "Слишком много сообщений. Подождите."
-        )
-
-        return
+        if not check_spam(
+            message.from_user.id,
+            MESSAGE_DELAY
+        ):
+            await message.answer(
+                "Слишком много сообщений. Подождите."
+            )
+            return
 
 
     if not message.text and not message.caption and not message.photo and not message.document:
@@ -433,7 +434,8 @@ async def get_questionnaire(
             albums[media_id] = {
                 "messages": [],
                 "user": message.from_user,
-                "chat_id": message.chat.id
+                "chat_id": message.chat.id,
+                "state": state
             }
 
         albums[media_id]["messages"].append(message.message_id)
@@ -444,7 +446,7 @@ async def get_questionnaire(
 
         async def process_album():
 
-            await sleep(1)
+            await sleep(3)
 
             album = albums.pop(media_id, None)
 
@@ -484,9 +486,11 @@ async def get_questionnaire(
             )
 
 
-            await state.set_state(
+            await album["state"].set_state(
                 Form.waiting_skin
             )
+
+            album_timers.pop(media_id, None)
 
 
         album_timers[media_id] = create_task(
@@ -540,17 +544,6 @@ async def get_skin(
     state: FSMContext,
     bot: Bot
 ):
-
-    if not check_spam(
-        message.from_user.id,
-        MESSAGE_DELAY
-    ):
-
-        await message.answer(
-            "Слишком много сообщений. Подождите."
-        )
-
-        return
 
 
     if not message.document:
