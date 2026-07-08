@@ -18,6 +18,7 @@ from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
+from asyncio import sleep
 
 # =========================
 # НАСТРОЙКИ БОТА
@@ -44,6 +45,8 @@ dp.include_router(router)
 # =========================
 
 cooldowns = {}
+
+albums = {}
 
 BUTTON_DELAY = 10
 MESSAGE_DELAY = 5
@@ -299,7 +302,7 @@ async def get_nick(
         return
 
 
-    if len(message.text) > 50:
+    if message.text and len(message.text) > 50:
 
         await message.answer(
             "Ник слишком длинный."
@@ -396,7 +399,6 @@ async def get_questionnaire(
     bot: Bot
 ):
 
-
     if not check_spam(
         message.from_user.id,
         MESSAGE_DELAY
@@ -409,8 +411,7 @@ async def get_questionnaire(
         return
 
 
-
-    if not message.text and not message.photo and not message.document:
+    if not message.text and not message.caption and not message.photo and not message.document:
 
         await message.answer(
             "К анкете возможно прикрепить только изображения и файлы."
@@ -419,27 +420,78 @@ async def get_questionnaire(
         return
 
 
+    # Если это альбом с картинками
+# Если это альбом с картинками
+    if message.media_group_id:
 
-    # Текст перед анкетой
-    prefix = (
-        "📋 #Анкета\n\n"
-        f"{get_user_info(message.from_user)}\n\n"
-    )
+        if message.media_group_id not in albums:
+            albums[message.media_group_id] = []
+
+        albums[message.media_group_id].append(
+            message.message_id
+        )
 
 
+        await sleep(1)
+
+
+        album = albums.pop(
+            message.media_group_id,
+            []
+        )
+
+
+        await bot.send_message(
+            REQUESTS_CHAT_ID,
+            "📋 #Анкета\n\n"
+            f"{get_user_info(message.from_user)}",
+            reply_markup=reply_keyboard(message.from_user.id)
+        )
+
+
+        for msg_id in album:
+
+            await bot.copy_message(
+                chat_id=REQUESTS_CHAT_ID,
+                from_chat_id=message.chat.id,
+                message_id=msg_id
+            )
+
+
+        await bot.send_message(
+            LOG_CHAT_ID,
+            f"✅ 📋 #Анкета\n"
+            f"{get_user_info(message.from_user)}"
+        )
+
+
+        await message.answer(
+            "Спасибо! Теперь, пожалуйста, отправьте файл вашего скина."
+        )
+
+
+        await state.set_state(
+            Form.waiting_skin
+        )
+
+        return
+
+
+    # Обычная анкета (без альбома)
 
     await bot.send_message(
         REQUESTS_CHAT_ID,
-        prefix
+        "📋 #Анкета\n\n"
+        f"{get_user_info(message.from_user)}",
+        reply_markup=reply_keyboard(message.from_user.id)
     )
+
 
     await bot.copy_message(
         chat_id=REQUESTS_CHAT_ID,
         from_chat_id=message.chat.id,
-        message_id=message.message_id,
-        reply_markup=reply_keyboard(message.from_user.id)
+        message_id=message.message_id
     )
-
 
 
     await bot.send_message(
