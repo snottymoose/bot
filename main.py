@@ -200,7 +200,7 @@ async def open_form(
     if not check_spam(user_id, BUTTON_DELAY):
 
         await call.answer(
-            "Подождите немного.",
+            "Подождите.",
             show_alert=True
         )
 
