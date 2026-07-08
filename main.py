@@ -71,7 +71,7 @@ def get_user_info(user):
     )
 
     return (
-        f"Telegram: {username}\n"
+        f"Username: {username}\n"
         f"ID: {user.id}"
     )
 
@@ -123,7 +123,7 @@ def reply_keyboard(user_id: int):
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text="💬 Ответить игроку",
+                    text="💬 Ответить",
                     callback_data=f"reply_{user_id}"
                 )
             ]
@@ -137,19 +137,19 @@ FORM_CONFIG = {
     "join": {
         "state": Form.waiting_nick,
         "message": "Пожалуйста, укажите свой ник в игре.",
-        "log": "📝 Начата заявка на вступление"
+        "log": "📝 Открыта опция «Вступление»"
     },
 
     "mods": {
         "state": Form.waiting_mods,
         "message": "Пожалуйста, укажите полные названия модов.",
-        "log": "🧩 Открыто предложение модов"
+        "log": "🧩 Открыта опция «Моды»"
     },
 
     "questionnaire": {
         "state": Form.waiting_questionnaire,
         "message": "Пожалуйста, заполните анкету.",
-        "log": "📋 Открыта анкета"
+        "log": "📋 Открыта опция «Анкетник»"
     }
 }
 
@@ -300,7 +300,7 @@ async def get_nick(
     await send_application(
         bot,
         message,
-        "🟢 Новая заявка"
+        "🟢 #Вступление"
     )
 
 
@@ -357,7 +357,7 @@ async def get_mods(
     await send_application(
         bot,
         message,
-        "🧩 Новое предложение модов"
+        "🧩 #Моды"
     )
 
 
@@ -405,7 +405,7 @@ async def get_questionnaire(
 
     # Текст перед анкетой
     prefix = (
-        "📋 Новая анкета\n\n"
+        "📋 #Анкета\n\n"
         f"{get_user_info(message.from_user)}\n\n"
     )
 
@@ -427,7 +427,7 @@ async def get_questionnaire(
 
     await bot.send_message(
         LOG_CHAT_ID,
-        f"📋 Анкета отправлена\n"
+        f"📋 Отправлена анкета\n"
         f"{get_user_info(message.from_user)}"
     )
 
