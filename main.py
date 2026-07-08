@@ -406,7 +406,7 @@ async def get_questionnaire(
     if not message.text and not message.photo and not message.document:
 
         await message.answer(
-            "Отправьте анкету текстом, изображением или файлом."
+            "К анкете возможно прикрепить только изображения и файлы."
         )
 
         return
