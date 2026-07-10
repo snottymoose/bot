@@ -93,6 +93,7 @@ class Form(StatesGroup):
     waiting_admin_reply = State()
     waiting_questionnaire = State()
     waiting_skin = State()
+    waiting_loroved = State()
 
 
 # =========================
@@ -121,6 +122,13 @@ menu = InlineKeyboardMarkup(
                 text="Анкетник",
                 icon_custom_emoji_id="6039779802741739617",
                 callback_data="questionnaire"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text="Лоровед",
+                icon_custom_emoji_id="6032625495328165724",
+                callback_data="loroved"
             )
         ]
     ]
@@ -171,6 +179,16 @@ FORM_CONFIG = {
         'Текст разрешается оформлять по-своему (в т.ч. с использованием премиум-эмодзи).\n'
         'Проследите за тем, чтобы ваша анкета умещалась в одно сообщение телеграма. В противном случае можно вставить ссылки на сторонние хранители информации.',
         "log": "📋 Открыта опция «Анкетник»"
+    },
+
+    "loroved": {
+        "state": Form.waiting_loroved,
+        "message": 
+            '<b>Для подачи заявки выполните тестовое задание и отправьте его сюда.</b>\n\n'
+            'Вам необходимо написать о своем игровом процессе на Младе Босне в третьем лице по подобию <a href="https://teletype.in/@snottymoose/3_uSC2Zvdup">статьи</a>.\n'
+            'Если вы не играли на сервере/играли мало, можете написать историю своего друга, свою с другого сервера или вовсе выдуманную (но правдоподобную).\n'
+            'Лимит = 1000 символов. Скрины прилагать не нужно.',
+        "log": "📖 Открыта опция «Лоровед»"
     }
 }
 
@@ -187,10 +205,11 @@ async def start(
 ):
     await state.clear()
     await message.answer(
-        '<b>Вас приветствует бот сервера <a href="https://t.me/MLADAB0SNA">Mlada Bosna</a>!</b>\n\n'
+        '<b>Вас приветствует бот сервера <a href="https://t.me/MLADAB0SNA">Mlada Bosna</a>!</b> Ниже описан функционал всех опций.\n\n'
         '1) <b>Вступление:</b> регистрация новых игроков.\n'
         '2) <b>Моды:</b> [<i>Временно</i>] здесь можно предложить желаемые Вами моды для добавления на сервер.\n'
-        '3) <b>Анкетник:</b> регистрация лорного персонажа. Подробнее можно узнать на соответственном <a href="https://t.me/MLADAB0SNA_chars">канале</a>.',
+        '3) <b>Анкетник:</b> регистрация лорного персонажа. Необязательно для игры на сервере, перед заполнением анкеты требуется вступить по первой опции. Подробнее на <a href="https://t.me/MLADAB0SNA_chars">канале</a>.\n'
+        '4) <b>Лоровед: [<i>Временно</i>] подача заявки на должность лороведа.</b>',
         reply_markup=menu,
         parse_mode=ParseMode.HTML
     )
@@ -385,6 +404,55 @@ async def get_mods(
 
     await message.answer(
         "Предложение отправлено."
+    )
+
+
+    await state.clear()
+
+# =========================
+# ПОЛУЧЕНИЕ ЛОРОВЕДА
+# =========================
+
+@router.message(Form.waiting_loroved)
+async def get_loroved(
+    message: Message,
+    state: FSMContext,
+    bot: Bot
+):
+
+    if not message.text:
+
+        await message.answer(
+            "Отправьте задание текстом."
+        )
+
+        return
+
+
+    await bot.send_message(
+        REQUESTS_CHAT_ID,
+        "📖 #Лоровед\n\n"
+        f"{get_user_info(message.from_user)}",
+        reply_markup=reply_keyboard(message.from_user.id)
+    )
+
+
+    await bot.copy_message(
+        chat_id=REQUESTS_CHAT_ID,
+        from_chat_id=message.chat.id,
+        message_id=message.message_id
+    )
+
+
+    await bot.send_message(
+        LOG_CHAT_ID,
+        f"✅ 📖 #Лоровед\n"
+        f"{get_user_info(message.from_user)}"
+    )
+
+
+    await message.answer(
+        "Заявка отправлена! Мы сообщим вам о результате набора."
     )
 
 
