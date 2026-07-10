@@ -209,7 +209,7 @@ async def start(
         '1) <b>Вступление:</b> регистрация новых игроков.\n'
         '2) <b>Моды:</b> [<i>Временно</i>] здесь можно предложить желаемые Вами моды для добавления на сервер.\n'
         '3) <b>Анкетник:</b> регистрация лорного персонажа. Необязательно для игры на сервере, перед заполнением анкеты требуется вступить по первой опции. Подробнее на <a href="https://t.me/MLADAB0SNA_chars">канале</a>.\n'
-        '4) <b>Лоровед: [<i>Временно</i>] подача заявки на должность лороведа.</b>',
+        '4) <b>Лоровед:</b> [<i>Временно</i>] подача заявки на должность лороведа.',
         reply_markup=menu,
         parse_mode=ParseMode.HTML
     )
@@ -248,10 +248,12 @@ async def open_form(
         data["state"]
     )
 
-
     await call.message.answer(
         data["message"],
-        parse_mode=ParseMode.HTML
+        parse_mode=ParseMode.HTML,
+        link_preview_options=LinkPreviewOptions(
+            is_disabled=True
+        )
     )
 
     await bot.send_message(
@@ -341,7 +343,7 @@ async def get_nick(
 
     await message.answer(
         "Заявка отправлена! Вы можете обратиться лично к "
-        "<a href='https://t.me/MLADAB0SNA/6'>администратору</a>, "
+        "<a href='https://t.me/MLADAB0SNA/6'>младшему администратору</a>, "
         "если ответ не поступил в течение 6-ти часов.",
         parse_mode=ParseMode.HTML,
         link_preview_options=LinkPreviewOptions(
