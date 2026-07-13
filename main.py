@@ -89,11 +89,9 @@ def get_user_info(user):
 
 class Form(StatesGroup):
     waiting_nick = State()
-    waiting_mods = State()
     waiting_admin_reply = State()
     waiting_questionnaire = State()
     waiting_skin = State()
-    waiting_loroved = State()
 
 
 # =========================
@@ -112,23 +110,9 @@ menu = InlineKeyboardMarkup(
         ],
         [
             InlineKeyboardButton(
-                text="Моды",
-                icon_custom_emoji_id="6034923938486684992",
-                callback_data="mods"
-            )
-        ],
-        [
-            InlineKeyboardButton(
                 text="Анкетник",
                 icon_custom_emoji_id="6039779802741739617",
                 callback_data="questionnaire"
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                text="Лоровед",
-                icon_custom_emoji_id="6032625495328165724",
-                callback_data="loroved"
             )
         ]
     ]
@@ -159,12 +143,6 @@ FORM_CONFIG = {
         "log": "📝 Открыта опция «Вступление»"
     },
 
-    "mods": {
-        "state": Form.waiting_mods,
-        "message": "Пожалуйста, укажите полные названия модов.",
-        "log": "🧩 Открыта опция «Моды»"
-    },
-
     "questionnaire": {
         "state": Form.waiting_questionnaire,
         "message": '<b>Пожалуйста, заполните анкету по шаблону:</b>\n\n'
@@ -179,16 +157,6 @@ FORM_CONFIG = {
         'Текст разрешается оформлять по-своему (в т.ч. с использованием премиум-эмодзи).\n'
         'Проследите за тем, чтобы ваша анкета умещалась в одно сообщение телеграма. В противном случае можно вставить ссылки на сторонние хранители информации.',
         "log": "📋 Открыта опция «Анкетник»"
-    },
-
-    "loroved": {
-        "state": Form.waiting_loroved,
-        "message": 
-            '<b>Для подачи заявки выполните тестовое задание и отправьте его сюда.</b>\n\n'
-            'Вам необходимо написать о своем игровом процессе на Младе Босне в третьем лице по подобию <a href="https://teletype.in/@snottymoose/3_uSC2Zvdup">статьи</a>.\n'
-            'Если вы не играли на сервере/играли мало, можете написать историю своего друга, свою с другого сервера или вовсе выдуманную (но правдоподобную).\n'
-            'Лимит = 1000 символов. Скрины прилагать не нужно.',
-        "log": "📖 Открыта опция «Лоровед»"
     }
 }
 
@@ -207,9 +175,7 @@ async def start(
     await message.answer(
         '<b>Вас приветствует бот сервера <a href="https://t.me/MLADAB0SNA">Mlada Bosna</a>!</b> Ниже описан функционал всех опций.\n\n'
         '1) <b>Вступление:</b> регистрация новых игроков.\n'
-        '2) <b>Моды:</b> [<i>Временно</i>] здесь можно предложить желаемые Вами моды для добавления на сервер.\n'
-        '3) <b>Анкетник:</b> регистрация лорного персонажа. Необязательно для игры на сервере, перед заполнением анкеты требуется вступить по первой опции. Подробнее на <a href="https://t.me/MLADAB0SNA_chars">канале</a>.\n'
-        '4) <b>Лоровед:</b> [<i>Временно</i>] подача заявки на должность лороведа.',
+        '2) <b>Анкетник:</b> регистрация лорного персонажа. Необязательно для игры на сервере, перед заполнением анкеты требуется вступить по первой опции. Подробнее на <a href="https://t.me/MLADAB0SNA_chars">канале</a>.',
         reply_markup=menu,
         parse_mode=ParseMode.HTML
     )
@@ -354,111 +320,6 @@ async def get_nick(
 
     await state.clear()
 
-
-
-# =========================
-# ПОЛУЧЕНИЕ МОДОВ
-# =========================
-
-@router.message(Form.waiting_mods)
-async def get_mods(
-    message: Message,
-    state: FSMContext,
-    bot: Bot
-):
-
-    if not check_spam(
-        message.from_user.id,
-        MESSAGE_DELAY
-    ):
-
-        await message.answer(
-            "Слишком много сообщений. Подождите."
-        )
-
-        return
-
-
-    if not message.text:
-
-        await message.answer(
-            "Отправьте текст."
-        )
-
-        return
-
-
-    if len(message.text) > 1000:
-
-        await message.answer(
-            "Сообщение слишком длинное."
-        )
-
-        return
-
-
-    await send_application(
-        bot,
-        message,
-        "🧩 #Моды"
-    )
-
-
-    await message.answer(
-        "Предложение отправлено."
-    )
-
-
-    await state.clear()
-
-# =========================
-# ПОЛУЧЕНИЕ ЛОРОВЕДА
-# =========================
-
-@router.message(Form.waiting_loroved)
-async def get_loroved(
-    message: Message,
-    state: FSMContext,
-    bot: Bot
-):
-
-    if not message.text:
-
-        await message.answer(
-            "Отправьте задание текстом."
-        )
-
-        return
-
-
-    await bot.send_message(
-        REQUESTS_CHAT_ID,
-        "📖 #Лоровед\n\n"
-        f"{get_user_info(message.from_user)}",
-        reply_markup=reply_keyboard(message.from_user.id)
-    )
-
-
-    await bot.copy_message(
-        chat_id=REQUESTS_CHAT_ID,
-        from_chat_id=message.chat.id,
-        message_id=message.message_id
-    )
-
-
-    await bot.send_message(
-        LOG_CHAT_ID,
-        f"✅ 📖 #Лоровед\n"
-        f"{get_user_info(message.from_user)}"
-    )
-
-
-    await message.answer(
-        "Заявка отправлена! Мы сообщим вам о результате набора."
-    )
-
-
-    await state.clear()
 
 # =========================
 # ПОЛУЧЕНИЕ АНКЕТЫ
