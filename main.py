@@ -32,7 +32,7 @@ TOKEN = getenv("BOT_TOKEN")
 if not TOKEN:
     raise RuntimeError("BOT_TOKEN не найден в .env")
 
-REQUESTS_CHAT_ID = -5315904328
+REQUESTS_CHAT_ID = -1003954456139
 LOG_CHAT_ID = -5302445006
 
 
