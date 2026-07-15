@@ -244,13 +244,17 @@ async def send_application(
     )
 
 
+    await bot.send_message(
+        REQUESTS_CHAT_ID,
+        f"{title}\n\n"
+        f"{get_user_info(message.from_user)}",
+        reply_markup=reply_keyboard(message.from_user.id)
+    )
+
     await bot.copy_message(
         chat_id=REQUESTS_CHAT_ID,
         from_chat_id=message.chat.id,
-        message_id=message.message_id,
-        reply_markup=reply_keyboard(
-            message.from_user.id
-        )
+        message_id=message.message_id
     )
 
 
