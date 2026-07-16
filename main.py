@@ -270,17 +270,6 @@ async def get_nick(
     bot: Bot
 ):
 
-    if not check_spam(
-        message.from_user.id,
-        MESSAGE_DELAY
-    ):
-
-        await message.answer(
-            "Слишком много сообщений. Подождите."
-        )
-
-        return
-
 
     if not message.text:
 
