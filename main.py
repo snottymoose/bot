@@ -177,7 +177,10 @@ async def start(
         '1) <b>Вступление:</b> регистрация новых игроков.\n'
         '2) <b>Анкетник:</b> регистрация лорного персонажа. Необязательно для игры на сервере. Подробнее на <a href="https://t.me/MLADAB0SNA_chars">канале</a>.',
         reply_markup=menu,
-        parse_mode=ParseMode.HTML
+        parse_mode=ParseMode.HTML,
+        link_preview_options=LinkPreviewOptions(
+            is_disabled=True
+    )
     )
 
 
