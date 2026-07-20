@@ -36,6 +36,13 @@ REQUESTS_CHAT_ID = -1003954456139
 LOG_CHAT_ID = -5302445006
 
 
+bot = Bot(
+    token=TOKEN,
+    default=DefaultBotProperties(
+        parse_mode=ParseMode.HTML
+    )
+)
+
 dp = Dispatcher()
 router = Router()
 dp.include_router(router)
@@ -92,7 +99,7 @@ class Form(StatesGroup):
     waiting_admin_reply = State()
     waiting_questionnaire = State()
     waiting_skin = State()
-
+    waiting_pr = State()
 
 # =========================
 # КНОПКИ
@@ -114,11 +121,27 @@ menu = InlineKeyboardMarkup(
                 icon_custom_emoji_id="6039779802741739617",
                 callback_data="questionnaire"
             )
+        ],
+        [
+            InlineKeyboardButton(
+                text="Пиарщик",
+                icon_custom_emoji_id="6030399199030284183",
+                callback_data="pr"
+            )
         ]
     ]
 )
 
-
+pr_keyboard = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(
+                text="Отправить заявку",
+                callback_data="send_pr"
+            )
+        ]
+    ]
+)
 
 def reply_keyboard(user_id: int):
 
@@ -175,7 +198,8 @@ async def start(
     await message.answer(
         '<b>Вас приветствует бот сервера <a href="https://t.me/MLADAB0SNA">Mlada Bosna</a>!</b> Ниже описан функционал всех опций.\n\n'
         '1) <b>Вступление:</b> регистрация новых игроков. Требований для вступления нет, нужно всего лишь указать свой ник в игре.\n'
-        '2) <b>Анкетник:</b> регистрация лорного персонажа. Необязательно для игры на сервере. Подробнее на <a href="https://t.me/MLADAB0SNA_chars">канале</a>.',
+        '2) <b>Анкетник:</b> регистрация лорного персонажа. Необязательно для игры на сервере. Подробнее на <a href="https://t.me/MLADAB0SNA_chars">канале</a>.\n'
+        '3) <b>Пиарщик:</b> <i>[ВРЕМЕННО]</i> подача заявки на должность пиарщика.',
         reply_markup=menu,
         parse_mode=ParseMode.HTML,
         link_preview_options=LinkPreviewOptions(
@@ -185,7 +209,9 @@ async def start(
 
 
 
-@router.callback_query(F.data.in_(FORM_CONFIG.keys()))
+@router.callback_query(
+    F.data.in_(FORM_CONFIG.keys())
+)
 async def open_form(
     call: CallbackQuery,
     state: FSMContext,
@@ -233,6 +259,53 @@ async def open_form(
 
 
     await call.answer()
+
+@router.callback_query(F.data == "pr")
+async def open_pr(
+    call: CallbackQuery
+):
+
+    await call.message.answer(
+        "Для подачи заявки нажмите кнопку ниже. Анкета не требуется.",
+        reply_markup=pr_keyboard
+    )
+
+    await call.answer()
+
+@router.callback_query(F.data == "send_pr")
+async def start_pr(
+    call: CallbackQuery,
+    state: FSMContext
+):
+
+    await state.set_state(
+        Form.waiting_pr
+    )
+
+    await call.message.answer(
+        "Отправьте вашу заявку."
+    )
+
+    await call.answer()
+
+@router.message(Form.waiting_pr)
+async def get_pr(
+    message: Message,
+    state: FSMContext,
+    bot: Bot
+):
+
+    await send_application(
+        bot,
+        message,
+        "📢 #Пиарщик"
+    )
+
+    await message.answer(
+        "Заявка отправлена! Мы сообщим Вам о результатах набора."
+    )
+
+    await state.clear()
 
 async def send_application(
     bot: Bot,
@@ -625,9 +698,6 @@ async def error_handler(event):
     )
 
 async def main():
-
-    bot = Bot(token=TOKEN)
-
 
     await bot.set_my_commands(
         [
