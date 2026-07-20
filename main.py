@@ -92,7 +92,6 @@ class Form(StatesGroup):
     waiting_admin_reply = State()
     waiting_questionnaire = State()
     waiting_skin = State()
-    waiting_pr = State()
 
 # =========================
 # КНОПКИ
@@ -266,39 +265,28 @@ async def open_pr(
     await call.answer()
 
 @router.callback_query(F.data == "send_pr")
-async def start_pr(
+async def send_pr(
     call: CallbackQuery,
-    state: FSMContext
+    bot: Bot
 ):
+    await bot.send_message(
+        REQUESTS_CHAT_ID,
+        "📢 #Пиарщик\n\n"
+        f"{get_user_info(call.from_user)}",
+        reply_markup=reply_keyboard(call.from_user.id)
+    )
 
-    await state.set_state(
-        Form.waiting_pr
+    await bot.send_message(
+        LOG_CHAT_ID,
+        "✅ 📢 #Пиарщик\n"
+        f"{get_user_info(call.from_user)}"
     )
 
     await call.message.answer(
-        "Отправьте вашу заявку."
-    )
-
-    await call.answer()
-
-@router.message(Form.waiting_pr)
-async def get_pr(
-    message: Message,
-    state: FSMContext,
-    bot: Bot
-):
-
-    await send_application(
-        bot,
-        message,
-        "📢 #Пиарщик"
-    )
-
-    await message.answer(
         "Заявка отправлена! Мы сообщим Вам о результатах набора."
     )
 
-    await state.clear()
+    await call.answer()
 
 async def send_application(
     bot: Bot,
