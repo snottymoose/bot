@@ -36,13 +36,6 @@ REQUESTS_CHAT_ID = -1003954456139
 LOG_CHAT_ID = -5302445006
 
 
-bot = Bot(
-    token=TOKEN,
-    default=DefaultBotProperties(
-        parse_mode=ParseMode.HTML
-    )
-)
-
 dp = Dispatcher()
 router = Router()
 dp.include_router(router)
@@ -698,6 +691,9 @@ async def error_handler(event):
     )
 
 async def main():
+
+    bot = Bot(token=TOKEN)
+
 
     await bot.set_my_commands(
         [
