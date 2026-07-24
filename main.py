@@ -644,7 +644,7 @@ async def send_admin_reply(
 
 
     await message.answer(
-        "Сообщение отправлено игроку."
+        "Сообщение отправлено."
     )
 
 
@@ -673,7 +673,7 @@ async def user_chat(
 
     await bot.send_message(
         REQUESTS_CHAT_ID,
-        "💬 Сообщение от игрока\n\n"
+        "💬 #Сообщение\n\n"
         f"{get_user_info(message.from_user)}"
     )
 
@@ -684,6 +684,12 @@ async def user_chat(
         reply_markup=reply_keyboard(
             message.from_user.id
         )
+    )
+
+    await bot.send_message(
+        LOG_CHAT_ID,
+        "💬 #Сообщение\n\n"
+        f"{get_user_info(message.from_user)}"
     )
 
 @router.message()
