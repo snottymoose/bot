@@ -14,6 +14,7 @@ from aiogram.types import (
 )
 from aiogram.filters import Command
 from aiogram.enums import ParseMode
+from aiogram.client.default import DefaultBotProperties
 
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -28,6 +29,13 @@ from asyncio import create_task
 load_dotenv()
 
 TOKEN = getenv("BOT_TOKEN")
+
+bot = Bot(
+    token=TOKEN,
+    default=DefaultBotProperties(
+        parse_mode=ParseMode.HTML
+    )
+)
 
 if not TOKEN:
     raise RuntimeError("BOT_TOKEN не найден в .env")
@@ -92,6 +100,7 @@ class Form(StatesGroup):
     waiting_admin_reply = State()
     waiting_questionnaire = State()
     waiting_skin = State()
+    chatting = State()
 
 # =========================
 # КНОПКИ
@@ -186,7 +195,6 @@ async def start(
     message: Message,
     state: FSMContext
 ):
-    await state.clear()
     await message.answer(
         '<b>Вас приветствует бот сервера <a href="https://t.me/MLADAB0SNA">Mlada Bosna</a>!</b> Ниже описан функционал всех опций.\n\n'
         '1) <b>Вступление:</b> регистрация новых игроков. Требований для вступления нет, нужно всего лишь указать свой ник в игре.\n'
@@ -225,7 +233,10 @@ async def open_form(
 
     if await state.get_state():
 
-        await state.clear()
+        current_state = await state.get_state()
+
+        if not current_state:
+            await state.clear()
 
 
     data = FORM_CONFIG[call.data]
@@ -267,7 +278,8 @@ async def open_pr(
 @router.callback_query(F.data == "send_pr")
 async def send_pr(
     call: CallbackQuery,
-    bot: Bot
+    bot: Bot,
+    state: FSMContext
 ):
     await bot.send_message(
         REQUESTS_CHAT_ID,
@@ -285,6 +297,8 @@ async def send_pr(
     await call.message.answer(
         "Отправлено! Мы сообщим Вам о результатах набора."
     )
+
+    await state.set_state(Form.chatting)
 
     await call.answer()
 
@@ -355,7 +369,7 @@ async def get_nick(
 
     await message.answer(
         "Заявка отправлена! Вы можете обратиться лично к "
-        "<a href='https://t.me/MLADAB0SNA/6'>младшему администратору</a>, "
+        "<a href='https://t.me/MLADAB0SNA/6'>одному из администраторов</a>, "
         "если ответ не поступил в течение 6-ти часов.",
         parse_mode=ParseMode.HTML,
         link_preview_options=LinkPreviewOptions(
@@ -364,7 +378,7 @@ async def get_nick(
     )
 
 
-    await state.clear()
+    await state.set_state(Form.chatting)
 
 
 # =========================
@@ -561,7 +575,7 @@ async def get_skin(
     )
 
 
-    await state.clear()
+    await state.set_state(Form.chatting)
 
 # =========================
 # ОТВЕТ АДМИНИСТРАТОРА
@@ -648,6 +662,30 @@ async def send_admin_reply(
 # ОБРАБОТКА СООБЩЕНИЙ БЕЗ ОПЦИИ
 # =========================
 
+@router.message(Form.chatting)
+async def user_chat(
+    message: Message,
+    bot: Bot
+):
+
+    if message.text and message.text.startswith("/"):
+        return
+
+    await bot.send_message(
+        REQUESTS_CHAT_ID,
+        "💬 Сообщение от игрока\n\n"
+        f"{get_user_info(message.from_user)}"
+    )
+
+    await bot.copy_message(
+        chat_id=REQUESTS_CHAT_ID,
+        from_chat_id=message.chat.id,
+        message_id=message.message_id,
+        reply_markup=reply_keyboard(
+            message.from_user.id
+        )
+    )
+
 @router.message()
 async def no_option_selected(
     message: Message,
@@ -680,9 +718,6 @@ async def error_handler(event):
 
 async def main():
 
-    bot = Bot(token=TOKEN)
-
-
     await bot.set_my_commands(
         [
             BotCommand(
@@ -692,9 +727,7 @@ async def main():
         ]
     )
 
-
     print("Bot started...")
-
 
     await dp.start_polling(bot)
 
